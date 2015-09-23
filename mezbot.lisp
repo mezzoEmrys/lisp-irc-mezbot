@@ -6,11 +6,11 @@
 (load "secrets.lisp")
 (defvar *chat-channel* "#extratricky")
 (defvar *connection* (connect :username "mezzoemrysbot"
-							:nickname "mezzoemrysbot"
-							:server "irc.twitch.tv"
-							:port 6667
-							:connection-security :none
-							:password *mezbot-password*))
+                              :nickname "mezzoemrysbot"
+                              :server "irc.twitch.tv"
+                              :port 6667
+                              :connection-security :none
+                              :password *mezbot-password*))
 (join *connection* *chat-channel*)
 
 (defun get-irc-message (message)
@@ -45,8 +45,8 @@
 (defun join-list-string (string-list)
 	(format nil "~{~A~^ ~}" string-list))
 
-(defun append-to-list (base-list new-list)
-	(setf base-list (append base-list new-list)))
+(defmacro append-to-list (base-list new-list)
+	`(setf ,base-list (append ,base-list ,new-list)))
 
 (defvar *hanabi-play-list* '("newest" "oldest" "with the finesse" "blind" "most clued" "around the bluff"))
 (defvar *hanabi-clue-list* '("purple" "red" "blue" "yellow" "green" "1" "2" "3" "4" "5"))
@@ -97,8 +97,10 @@
 					(send-message "Yup, face is the place, definitely." destination))
 				((and (message-sender message "mezzoemrys") (message-begins message "!eval"))
 					(send-message (eval (read-from-string (message-skip-command message))) destination))
-				((and (message-sender message "mezzoemerys") (message-begins message "!silent-eval"))
-					(eval (read-from-string (message-skip-command message))))
+				((and (message-sender message "mezzoemrys") (message-begins message "!silent-eval"))
+					(progn
+						(eval (read-from-string (message-skip-command message)))
+						(send-message "Evaluated!")))
 				((and (message-sender message "twitchnotify") (message-match "[^ ]*? has just subscribed"))
 					(send-message "Oh boy, another subscriber!"))
 				(t nil))
