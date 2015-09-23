@@ -37,16 +37,19 @@
 	(privmsg *connection* destination message))
 
 (defun split-by-one-space (string)
-    (loop for i = 0 then (1+ j)
-          as j = (position #\Space string :start i)
-          collect (subseq string i j)
-          while j))
+	(loop for i = 0 then (1+ j)
+		  as j = (position #\Space string :start i)
+		  collect (subseq string i j)
+		  while j))
 
 (defun join-list-string (string-list)
 	(format nil "~{~A~^ ~}" string-list))
 
 (defmacro append-to-list (base-list new-list)
 	`(setf ,base-list (append ,base-list ,new-list)))
+
+(defmacro remove-from-list (base-list item-to-remove)
+	`(setf ,base-list (remove-if #'(lambda (x) (string-equal ,item-to-remove x)) ,base-list)))
 
 (defvar *hanabi-play-list* '("newest" "oldest" "with the finesse" "blind" "most clued" "around the bluff"))
 (defvar *hanabi-clue-list* '("purple" "red" "blue" "yellow" "green" "1" "2" "3" "4" "5"))
@@ -98,9 +101,7 @@
 				((and (message-sender message "mezzoemrys") (message-begins message "!eval"))
 					(send-message (eval (read-from-string (message-skip-command message))) destination))
 				((and (message-sender message "mezzoemrys") (message-begins message "!silent-eval"))
-					(progn
-						(eval (read-from-string (message-skip-command message)))
-						(send-message "Evaluated!")))
+					(eval (read-from-string (message-skip-command message))))
 				((and (message-sender message "twitchnotify") (message-match "[^ ]*? has just subscribed"))
 					(send-message "Oh boy, another subscriber!"))
 				(t nil))
