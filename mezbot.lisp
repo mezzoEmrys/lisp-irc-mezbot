@@ -13,6 +13,15 @@
                               :password *mezbot-password*))
 (join *connection* *chat-channel*)
 
+(defun split-by-one-space (string)
+	(loop for i = 0 then (1+ j)
+		  as j = (position #\Space string :start i)
+		  collect (subseq string i j)
+		  while j))
+
+(defun join-list-string (string-list)
+	(format nil "~{~A~^ ~}" string-list))
+
 (defun get-irc-message (message)
 	(car (last (arguments message))))
 (defun get-irc-sender (message)
@@ -35,15 +44,6 @@
 
 (defun send-message (message &optional (destination *chat-channel*))
 	(privmsg *connection* destination message))
-
-(defun split-by-one-space (string)
-	(loop for i = 0 then (1+ j)
-		  as j = (position #\Space string :start i)
-		  collect (subseq string i j)
-		  while j))
-
-(defun join-list-string (string-list)
-	(format nil "~{~A~^ ~}" string-list))
 
 (defmacro append-to-list (base-list new-list)
 	`(setf ,base-list (append ,base-list ,new-list)))
@@ -102,14 +102,14 @@
 					(send-message (eval (read-from-string (message-skip-command message))) destination))
 				((and (message-sender message "mezzoemrys") (message-begins message "!silent-eval"))
 					(eval (read-from-string (message-skip-command message))))
-				((and (message-sender message "twitchnotify") (message-match "[^ ]*? has just subscribed"))
+				((and (message-sender message "twitchnotify") (message-match message "[^ ]*? has just subscribed"))
 					(send-message "Oh boy, another subscriber!"))
 				(t nil))
 			(print (concatenate 'string (source message) ": " (car (rest (arguments message))))))))
 
 (defun sal-hook (message)
 	(let ((destination *chat-channel*))
-		(send-message (pick-random '("Mezbot has joined the party!" "It's Mezbot time!" "Hey guys, what's happening?")))))
+		(send-message (pick-random '("Mezbot has joined the party!" "It's Mezbot time!" "Hey guys, what's happening?")) destination)))
 			
 (add-hook *connection* 'irc-privmsg-message 'msg-hook)
 ;(add-hook *connection* 'irc-join-message 'sal-hook)
