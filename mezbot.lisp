@@ -1,7 +1,8 @@
 (require :cl-irc)
 (require :cl-ppcre)
 (defpackage :mezbot
-	(:use :cl :irc :cl-ppcre))
+	(:use :cl :irc :cl-ppcre :sb-thread))
+(in-package :irc)
 (in-package :mezbot)
 (load "secrets.lisp")
 (defvar *chat-channel* "#extratricky")
@@ -11,6 +12,12 @@
                               :port 6667
                               :connection-security :none
                               :password *mezbot-password*))
+;(defvar *whisper-connection* (connect :username "mezzoemrysbot"
+;									  :nickname "mezzoemrysbot"
+;									  :server "199.9.253.120"
+;									  :port 6667
+;									  :connection-security :none
+;									  :password *mezbot-password*))
 (join *connection* *chat-channel*)
 
 (defun split-by-one-space (string)
@@ -35,15 +42,17 @@
 	(string-equal (get-irc-message message) compare))
 (defun message-contain (message compare)
 	(search compare (get-irc-message message)))
-(defun message-begins (message compare)
-	(scan (concatenate 'string "^" compare) (get-irc-message message)))
 (defun message-match (message regex)
 	(scan regex (get-irc-message message)))
+(defun message-begins (message compare)
+	(message-match message (concatenate 'string "^" compare)))
 (defun message-sender (message sender)
 	(equal sender (get-irc-sender message)))
 
 (defun send-message (message &optional (destination *chat-channel*))
 	(privmsg *connection* destination message))
+;(defun send-whisper (message destination)
+;	(privmsg *whisper-connection* *chat-channel* (concatenate 'string "/w " destination " " message)))
 
 (defmacro append-to-list (base-list new-list)
 	`(setf ,base-list (append ,base-list ,new-list)))
@@ -85,11 +94,11 @@
 				((message-equal message "!hanabi-set-players")
 					(progn
 						(setf *hanabi-players-list* '(""))
-						(send-message "Players list emptied!") destination))
+						(send-message "Players list emptied!" destination)))
 				((message-begins message "!hanabi-set-players")
 					(progn
 						(setf *hanabi-players-list* (rest (split-by-one-space (get-irc-message message))))
-						(send-message "Players list updated!")) destination)
+						(send-message "Players list updated!" destination)))
 				((and (message-contain message "unarmed combat") (or (message-contain message "mezzoemrysbot") (message-contain message "mezbot")))
 					(send-message "Watch out, I'm trained in google-fu!" destination))
 				((message-equal message "!hearthstone-draft")
@@ -102,17 +111,23 @@
 					(send-message (eval (read-from-string (message-skip-command message))) destination))
 				((and (message-sender message "mezzoemrys") (message-begins message "!silent-eval"))
 					(eval (read-from-string (message-skip-command message))))
-				((and (message-sender message "twitchnotify") (message-match message "[^ ]*? has just subscribed"))
+				((and (message-sender message "twitchnotify") (message-match message "[^ ]*? just subscribed"))
 					(send-message "Oh boy, another subscriber!"))
+				((or (message-equal message "!flirt") (message-equal message "* flirt"))
+					(send-message "W-what? Flirting with me? I'll have you know I'm a bot of very high standards!"))
 				(t nil))
 			(print (concatenate 'string (source message) ": " (car (rest (arguments message))))))))
 
 (defun sal-hook (message)
 	(let ((destination *chat-channel*))
-		(send-message (pick-random '("Mezbot has joined the party!" "It's Mezbot time!" "Hey guys, what's happening?")) destination)))
-			
+		(send-message (pick-random '("Mezbot has joined the party!" "It's Mezbot time!" "Hey guys, what's happening?" "hOI!!!")) destination)))
+(defun crash-hook (message)
+	(let ((destination *chat-channel*))
+		(send-message "hello friends i died but am back" destination)))
+
 (add-hook *connection* 'irc-privmsg-message 'msg-hook)
+;(add-hook *whisper-connection* 'irc-whisper-message 'whis-hook)
 ;(add-hook *connection* 'irc-join-message 'sal-hook)
+;(make-thread (lambda ()(read-message-loop *connection*)) :name "mainloop")
+;(make-thread (lambda ()(read-message-loop *whisper-connection*)) :name "whisloop")
 (read-message-loop *connection*)
-
-
